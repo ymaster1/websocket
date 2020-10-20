@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Web sockets test</title>
+    <script src="js/rsa.js"></script>
+    <script src="js/jquery-3.4.1.js"></script>
+    <!--   引入AES -->
+    <script src="js/rollups/aes.js"></script>
+    <!--    使用ecb模式填充-->
+    <script src="js/components/mode-ecb.js"></script>
+    <script type="text/javascript">
+        //AES 解密 加密
+        function encryptByAES(message, key) {
+            var keyHex = CryptoJS.enc.Utf8.parse(key);
+            var encrypted = CryptoJS.AES.encrypt(message, keyHex, {
+                mode: CryptoJS.mode.ECB,
+                padding: CryptoJS.pad.Pkcs7
+            });
+            return encrypted.toString();
+        }
+
+        //AES 解密
+
+        function decryptByAES(ciphertext, key) {
+            var keyHex = CryptoJS.enc.Utf8.parse(key);
+            // direct decrypt ciphertext
+            var decrypted = CryptoJS.AES.decrypt({
+                                                     ciphertext: CryptoJS.enc.Base64.parse(
+                                                         ciphertext)
+                                                 }, keyHex, {
+                                                     mode: CryptoJS.mode.ECB,
+                                                     padding: CryptoJS.pad.Pkcs7
+                                                 });
+            return decrypted.toString(CryptoJS.enc.Utf8);
+        }
+    </script>
+    <script type="text/javascript">
+
+        var ws;
+        //后端公钥
+        var pubK;
+        //DESkey
+        var deskey = '1234567887654321';
+        var rsa = new JSEncrypt();
+        //获取rsa密钥对
+        var publickey = rsa.getPublicKeyB64();
+        // var publickey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCKOb06Oe5mx5TZapskLlcFnnKG9kwS4rxar/0EGNl1PJe/NeNv5XhawkeuA2MOMjkAX3m1MQiwt3Nn6/orVCgz8wN1uQBkpOZ4Hb/Cy8uX4jJW1K18q7Te59ueKnOjjlewmI3YO0DjehZBc89pRd2QOWydMl/Ij6eelXw97ECtCwIDAQAB";
+        var privatekey = rsa.getPrivateKeyB64();
+        // var privatekey = "MIICXAIBAAKBgQCKOb06Oe5mx5TZapskLlcFnnKG9kwS4rxar/0EGNl1PJe/NeNv5XhawkeuA2MOMjkAX3m1MQiwt3Nn6/orVCgz8wN1uQBkpOZ4Hb/Cy8uX4jJW1K18q7Te59ueKnOjjlewmI3YO0DjehZBc89pRd2QOWydMl/Ij6eelXw97ECtCwIDAQABAoGABpL6cgOBWDgT10dfu5fMocLIdazPL3LDPJj0Mrav2QiZuwloGNFUKRTmbdtRYcJ3vZHM6xY68JS5E29AxcDJ7KSc7+k9W56yyjzWh0yf2A+HZa8J5YDWYdXVuLv9Jkg6hbv6ksfCSnxYLXbRtbOYuKYlif2Wtx8WFADKF74dQBkCQQDQJ/SECx7tNN4qNMrDYPLpaIx27hTo5pV3ZABWPKaBRYelJ8QgPLxvZIgs10BXSwP0S4M1RRU4r3ODEwVc65NvAkEAqf8GKUYElWlqBJAhvhOxwObt5I7SY0w4LJT472jRvMN7c1UY7IZPEbP0/HaD/T0xxfnqA53i6ND8GrLEFQqCJQJBAMNT2vVVYi4BIEDGzUZN4WP5gWXQv7pVNgiUxGQoAa7oygLGsBn4JHL7CXXafzvq3skNWxBPxTwuF9z1qmCphu0CQDNvMvkH81kVpPsudNci9FROSsotoGBk7lYm2M7vIw5/AvoZVEo0NPZBQa2lWjgj7Mxe2jwv6DjTCoQ1dHh9TnUCQDK60W0tf9Z4O1YF8odmyoCj4qleUVczSm4Nzplvv5T0nz7FpQi5+lPTnU/m0FV4cDvYuOXespTe9L6XzBJL0fo=";
+
+        // //DES 加密
+        // function encryptByDES(message, key) {
+        //     var keyHex = CryptoJS.enc.Utf8.parse(key);
+        //     var encrypted = CryptoJS.AES.encrypt(message, keyHex, {
+        //         mode: CryptoJS.mode.ECB,
+        //         padding: CryptoJS.pad.Pkcs7
+        //     });
+        //     return encrypted.toString();
+        // }
+        //
+        // //DES 解密
+        // function decryptByDES(ciphertext, key) {
+        //     var keyHex = CryptoJS.enc.Utf8.parse(key);
+        //     // direct decrypt ciphertext
+        //     var decrypted = CryptoJS.AES.decrypt({
+        //                                              ciphertext: CryptoJS.enc.Base64.parse(
+        //                                                  ciphertext)
+        //                                          }, keyHex, {
+        //                                              mode: CryptoJS.mode.ECB,
+        //                                              padding: CryptoJS.pad.Pkcs7
+        //                                          });
+        //     return decrypted.toString(CryptoJS.enc.Utf8);
+        // }
+
+        function login() {
+            //没创建连接就创建，如果连接存在就断开
+            if (!ws) {
+                //获取登陆用户名
+                var user = document.getElementById("name").value;
+                try {
+                    ws = new WebSocket("ws://127.0.0.1:8080/websocket/" + user);//连接服务器
+                    ws.onopen = function (event) {
+                        //将前端公钥发给后端
+                        ws.send("rsa_public" + publickey);
+                        console.log("已经与服务器建立了连接...");
+                        console.log(publickey);
+                        alert("登陆成功，可以开始聊天了")
+                    };
+                    //接收后端消息
+                    ws.onmessage = function (event) {
+                        let json;
+                        try {
+                            //有json就解析，服务器只会在建立连接的时候发送json,里面存的是服务端公钥
+                            json = JSON.parse(event.data);
+                        } catch (e) {
+                            // 此时传送的是消息
+                            console.log("此时传送的是消息");
+                            json = event.data;
+                            console.log("接收到服务器发送的数据..." + json);
+
+                        }
+                        //在登录时后端会返回一个pub,为了不一直显示出来，在赋值之前先判断，第一次还没赋值，
+                        // 所以不显示data(此时只有pub),后续已经赋值过了，所以显示data(此时只有消息)
+                        if (pubK) {
+                            //先拆分消息
+                            const msg = event.data.toString().split("key:");
+                            console.log("消息内容" + msg[0]);
+                            console.log("密钥内容" + msg[1]);
+                            // rsa解密密钥
+                            const encrypt = new JSEncrypt();
+                            encrypt.setPrivateKey(privatekey);
+                            console.log("客户端私钥"+privatekey)
+                            const key = encrypt.decrypt(msg[1]);
+                            console.log("密钥明文" + key);
+                            //AES解密消息，此时，而是user:(加密信息),需要截取
+                            const str = decryptByAES(msg[0], key)
+                            const info = str.toString().split(":");
+                            console.log("用户名" + info[0]);
+                            console.log("消息明文" + info[1]);
+                            // const index = str.indexOf(":");
+                            // console.log(index);
+                            // // des加密消息只有12位
+                            // const desData = str.substr(index + 1, 12);
+                            // console.log(desData);
+                            // //des解密
+                            // const keyHex = CryptoJS.enc.Utf8.parse(deskey);
+                            // const decrypted = CryptoJS.DES.decrypt({
+                            //                                            ciphertext: CryptoJS.enc.Base64.parse(
+                            //                                                desData)
+                            //                                        }, keyHex, {
+                            //                                            mode: CryptoJS.mode.ECB,
+                            //                                            padding: CryptoJS.pad.Pkcs7
+                            //                                        });
+                            // const desStr = decrypted.toString(CryptoJS.enc.Utf8);
+
+                            // document.getElementById("info").innerHTML += event.data + "<br>";
+
+                            // document.getElementById("info").innerHTML += str + "<br>";
+                            document.getElementById("info").innerHTML +=
+                                //user:+信息
+                                info[0] + "发来消息:  " + info[1] + "<br>";
+
+                            // console.log("des解密：" + str);
+                            //
+                            // console.log(event.data);
+
+                        }
+                        //如果接收的数据是对象，才解析（第一次是（发了json），后面都是消息（string））
+                        if ('object' === typeof json && json.pubK) {
+                            pubK = json.pubK;
+                            console.log("交换到服务器公钥"+pubK)
+
+                        }
+                        // debugger;
+
+                    };
+                    //接受后端断开连接对消息,可以选择不接受
+                    ws.onclose = function (event) {
+                        //重复登录会直接断开
+                        alert("该用户已在聊天室内！")
+                        console.log("已经与服务器断开连接...");
+                    };
+                    ws.onerror = function (event) {
+                        console.log("WebSocket异常！");
+                    };
+                } catch (ex) {
+                    alert(ex.message);
+                }
+                // document.getElementById("login").innerHTML = "退出";
+            } else {
+                ws.close();
+                alert("已断开连接！");
+                ws = null;
+            }
+        }
+
+        //发送aes加密后的消息+rsa加密后的密钥
+        function SendData() {
+            var data = document.getElementById("data").value;
+            // var publicK = `-----BEGIN PUBLIC KEY----- `+pubK +`-----END PUBLIC KEY-----`;
+            //加密数据
+            var encrypt = new JSEncrypt();
+            encrypt.setPublicKey(pubK);
+            //des加密
+            var desData = encryptByAES(data, deskey);
+            //rsa加密被des加密的密文，双重加密，这样的坏处在于前后端必须要还要确定密钥是否一致
+            // var str = encrypt.encrypt(desData);
+            //rsa加密消息的key
+            var dataKey = encrypt.encrypt(deskey);
+            //拼接加密后的data和加密后的key
+            var sendStr = desData + "key:" + dataKey;
+
+            try {
+                //发送密文和密钥
+                // ws.send(str);
+                ws.send(sendStr);
+            } catch (ex) {
+                alert(ex.message);
+            }
+        }
+
+        function colse() {
+            ws.close();
+            alert("已断开连接！");
+
+        }
+    </script>
+
+</head>
+<body>
+
+<input id="name" value="" placeholder="用户名"><br>
+<!--<input id="password" value="" placeholder="密码">-->
+<button id="login" type="button" onclick="login()" value="">登陆</button>
+<br/><br/>
+<input id="data">
+<button type="button" onclick='SendData();'>发送消息</button>
+<button type="button" onclick='colse();'>离开</button>
+<br/><br/>
+<div id="info">
+</div>
+</body>
+</html>

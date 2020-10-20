@@ -1,0 +1,63 @@
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>JS设置DES加密处理</title>
+<!--   <script src="http://passport.cnblogs.com/scripts/jsencrypt.min.js"></script>-->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+
+    <script src="js/rollups/tripledes.js"></script>
+    <script src="js/components/mode-ecb.js"></script>
+    <script type="text/javascript">
+        //DES 解密 加密
+        function encryptByDES(message, key) {
+            var keyHex = CryptoJS.enc.Utf8.parse(key);
+            var encrypted = CryptoJS.DES.encrypt(message, keyHex, {
+                mode: CryptoJS.mode.ECB,
+                padding: CryptoJS.pad.Pkcs7
+            });
+            return encrypted.toString();
+        }
+        //DES 解密
+
+        function decryptByDES(ciphertext, key) {
+            var keyHex = CryptoJS.enc.Utf8.parse(key);
+            // direct decrypt ciphertext
+            var decrypted = CryptoJS.DES.decrypt({
+                                                     ciphertext: CryptoJS.enc.Base64.parse(ciphertext)
+                                                 }, keyHex, {
+                                                     mode: CryptoJS.mode.ECB,
+                                                     padding: CryptoJS.pad.Pkcs7
+                                                 });
+            return decrypted.toString(CryptoJS.enc.Utf8);
+        }
+    </script>
+    <script>
+        //加密
+        function encryptStr() {
+            var strKey = $.trim($('#key').val());
+            var strMsg = $.trim($('#text1').val());
+            $('#text2').val(encryptByDES(strMsg, strKey));
+        }
+        //解密
+
+        function decryptStr() {
+            var strKey = $.trim($('#key').val());
+            var ciphertext = $.trim($('#text2').val());
+            $('#text3').val(decryptByDES(ciphertext, strKey));
+        }
+    </script>
+</head>
+
+<body>
+<h1>JS设置DES加密处理</h1>
+<label>key</label>
+<input type="text" value='12345678' id="key" />
+<div>
+    <textarea id="text1" placeholder="请输入需要加密的字符"></textarea>
+    <input type="button" value="加密" onclick="encryptStr();" />
+    <textarea id="text2"></textarea>
+    <input type="button" value="解密" onclick="decryptStr();" />
+    <textarea id="text3"></textarea>
+</div>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>register</title>
+    <script src="js/jquery-3.4.1.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+    <script src="js/jquery-3.4.1.js"></script>
+    <script type="text/javascript">
+        $(function () {
+            //选择id=1的元素，点击后执行后续
+            $("#1").click(function () {
+                //发送ajax请求
+                var obj = {
+                    //根据id绑定值
+                    "name": $("#user").val(),
+                    "password": $("#password").val(),
+                    "age": $("#age").val(),
+                    "addr": $("#addr").val()
+                };
+                //发送注册请求
+                $.ajax({
+                           url: "check/register",
+                           type: "post",
+                           contentType: "application/json;charset=utf-8",
+                           data: JSON.stringify(obj),
+                           //默认是true,开启一步请求，这里为了后续处理就关闭了
+                           sync: false,
+                           //请求成功之后
+                           success(data) {
+                               console.log(data);
+                               if (data.code === "200") {
+                                   alert("success!");
+                               } else {
+                                   alert(data.msg);
+                               }
+
+                           },
+                           error(data) {
+                               alert("服务暂时不可用！")
+                           }
+                       });
+            });
+        });
+
+    </script>
+    <!--注册成功后需要跳转到main.html-->
+    <script language="javascript" type="text/javascript">
+        function toChat(){
+            window.location.href="index.html";
+        }
+    </script>
+    <style type="text/css">
+        input {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            box-sizing: border-box;
+            border: 1px solid #555;
+            outline: none;
+        }
+
+        input:focus {
+            background-color: lightblue;
+        }
+        .divForm{
+            position: absolute;/*绝对定位*/
+            width: 400px;
+            height: 300px;
+            background-color: grey;
+
+            text-align: center;/*(让div中的内容居中)*/
+            top: 50%;
+            left: 50%;
+            margin-top: -200px;
+            margin-left: -150px;
+        }
+    </style>
+
+</head>
+<body>
+<!--<div class="outer-wrap">-->
+    <form>
+        <div class="divForm">
+            <input id="user" type="text" name="user" value="" placeholder="用户名"/><br>
+            <input id="password" type="password" name="password" value="" placeholder="密码"/><br>
+            <input id="age" type="text" name="age" value="" placeholder="年龄"/><br>
+            <input id="addr" type="text" name="addr" value="" placeholder="地址"/><br>
+            <button id="1" type="button">注册</button>
+            <button type="button" onclick='toChat()'>去聊天</button>
+
+        </div>
+    </form>
+<!--</div>-->
+</body>
+</html>
